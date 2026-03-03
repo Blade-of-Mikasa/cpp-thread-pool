@@ -1,0 +1,2 @@
+C:/MyProjections/cpp-thread-pool/build/CMakeFiles/edit_cache.dir
+C:/MyProjections/cpp-thread-pool/build/CMakeFiles/rebuild_cache.dir
