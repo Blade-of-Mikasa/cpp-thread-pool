@@ -6,21 +6,36 @@
 #include <functional>
 #include <condition_variable>
 
-class thread_pool{
+class thread_pool {
 public:
     explicit thread_pool(int num_thread);
+
+    // 单例模式 禁止多个对象
+    // thread_pool(const thread_pool &other) = delete;
+    // thread_pool operator=(const thread_pool other) = delete;
+    // thread_pool(thread_pool &&other) = delete;
+    // thread_pool &operator=(thread_pool &&other) = delete;
+
     ~thread_pool();
 
-    template<class F, class ... Args>
-    void enqueue(F && f, Args && ... args);
+    template<class F, class... Args>
+    void enqueue(F &&f, Args &&... args);
+
+    // 懒汉模式
+    // static thread_pool& get_instance() {
+    //     static thread_pool* ptr = nullptr;
+    //     if (ptr == nullptr) ptr = new thread_pool;
+    //     return *ptr;
+    // }
+
+    [[nodiscard]]size_t size() const;
+
 private:
     std::vector<std::thread> threads;
-    std::queue<std::function<void()>> tasks;
+    std::queue<std::function<void()> > tasks;
     std::mutex mtx;
     std::condition_variable condition;
     bool stop{false};
-
-    // void init(int num_thread);
 };
 
 template<class F, class... Args>

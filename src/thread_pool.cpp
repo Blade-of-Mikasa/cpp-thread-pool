@@ -33,3 +33,8 @@ thread_pool::~thread_pool() {
         t.join();
     }
 }
+
+size_t thread_pool::size() const {
+    return threads.size();
+}
+
