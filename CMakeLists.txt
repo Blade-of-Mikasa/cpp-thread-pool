@@ -85,6 +85,9 @@ target_link_libraries(example thread_pool)
 add_executable(metrics_demo examples/metrics_demo.cpp)
 target_link_libraries(metrics_demo thread_pool)
 
+add_executable(stress_bench benchmarks/stress_bench.cpp)
+target_link_libraries(stress_bench thread_pool)
+
 enable_testing()
 
 add_executable(test_thread_pool tests/test_thread_pool.cpp)

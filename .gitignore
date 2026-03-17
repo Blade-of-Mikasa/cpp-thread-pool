@@ -6,3 +6,4 @@ build/
 .vscode/
 .idea/
 metrics_*.csv
+bench_results.csv

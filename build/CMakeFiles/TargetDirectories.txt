@@ -1,6 +1,7 @@
 C:/MyProjections/cpp-thread-pool/build/CMakeFiles/thread_pool.dir
 C:/MyProjections/cpp-thread-pool/build/CMakeFiles/example.dir
 C:/MyProjections/cpp-thread-pool/build/CMakeFiles/metrics_demo.dir
+C:/MyProjections/cpp-thread-pool/build/CMakeFiles/stress_bench.dir
 C:/MyProjections/cpp-thread-pool/build/CMakeFiles/test_thread_pool.dir
 C:/MyProjections/cpp-thread-pool/build/CMakeFiles/test_submit_future.dir
 C:/MyProjections/cpp-thread-pool/build/CMakeFiles/test_try_submit_full.dir

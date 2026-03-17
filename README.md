@@ -45,11 +45,12 @@ int main() {
 
 ### 提交接口
 
+- `post(f, args...) -> void`：提交任务但不返回 future（fire-and-forget），适合高吞吐场景。
 - `submit(f, args...) -> std::future<T>`：提交任务并获取返回值/异常。
 - `try_submit(f, args...) -> std::optional<std::future<T>>`：不阻塞；队列满时返回空（caller-runs 例外，会直接执行并返回 future）。
 - `submit_for(timeout, f, args...) -> std::optional<std::future<T>>`：最多等待 `timeout`；超时返回空（caller-runs 例外）。
 
-兼容接口：`enqueue(f, args...)` 仍然保留（内部调用 `submit` 并丢弃 future）。
+兼容接口：`enqueue(f, args...)` 仍然保留（内部调用 `post`）。
 
 ### 关闭与等待
 
@@ -60,7 +61,7 @@ int main() {
 ## 动态扩缩容策略
 
 1. 初始化时只创建 `min_threads` 个工作线程。
-2. 每次 `submit` 时，把任务放入队列（FIFO）。
+2. 每次提交任务（`post` / `submit`）时，把任务放入队列（FIFO）。
 3. 如果队列中的待处理任务已经多于空闲线程，并且还没到 `max_threads`，就继续创建新线程。
 4. 工作线程空闲时使用 `wait_for` 挂起等待。
 5. 如果等待超过 `idle_timeout` 后仍然没有任务，并且当前线程数大于 `min_threads`，这个空闲线程就会主动退出。
@@ -99,6 +100,35 @@ python scripts/plot_metrics_svg.py --out-dir docs
 cmake -S . -B build
 cmake --build build
 ctest --test-dir build --output-on-failure
+```
+
+## 压力测试（带对照组）
+
+> 说明：线程池是单例，因此每个压力场景需要在独立进程里运行；套件脚本会逐个拉起进程并汇总结果。
+
+构建压力测试程序：
+
+```bash
+cmake -S . -B build
+cmake --build build
+```
+
+运行“压力测试套件”（会输出 `bench_results.csv`）：
+
+```bash
+python scripts/run_stress_suite.py --exe build/stress_bench.exe --out bench_results.csv
+```
+
+套件包含的对照组与实验组：
+
+- 对照组 1：`serial`（不使用线程池）
+- 对照组 2：`fixed`（`min_threads == max_threads`，关闭动态扩缩容）
+- 实验组：`dynamic`（`min_threads < max_threads`，开启动态扩缩容）
+
+你也可以手动跑单个场景（程序会直接打印一行 CSV）：
+
+```bash
+build/stress_bench.exe --impl thread_pool --work spin --tasks 50000 --work-us 50 --producers 4 --min 2 --max 8 --capacity 0 --policy block
 ```
 
 ## 安装与 find_package

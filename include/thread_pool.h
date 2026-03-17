@@ -31,7 +31,7 @@
 //
 // 设计说明（重要）：
 // - 线程池析构会停止接收新任务，并唤醒所有工作线程；工作线程会把队列里剩余任务处理完再退出。
-// - enqueue 为兼容接口（内部调用 submit 并丢弃 future）。
+// - enqueue 为兼容接口（内部调用 post，fire-and-forget）。
 class thread_pool {
 public:
     enum class shutdown_mode {
@@ -101,6 +101,11 @@ public:
 
     template<class F, class... Args>
     void enqueue(F &&f, Args &&... args);
+
+    // Fire-and-forget 提交：不返回 future、不开辟 promise。
+    // 适合高吞吐场景（避免大量 future/promise 分配开销）。
+    template<class F, class... Args>
+    void post(F &&f, Args &&... args);
 
     template<class F, class... Args>
     auto submit(F &&f, Args &&... args)
@@ -267,7 +272,61 @@ private:
 
 template<class F, class... Args>
 void thread_pool::enqueue(F &&f, Args &&... args) {
-    (void)submit(std::forward<F>(f), std::forward<Args>(args)...);
+    post(std::forward<F>(f), std::forward<Args>(args)...);
+}
+
+template<class F, class... Args>
+void thread_pool::post(F &&f, Args &&... args) {
+    task_item task;
+    task.enqueued_at = enable_metrics ? std::chrono::steady_clock::now() : std::chrono::steady_clock::time_point{};
+    task.run = std::bind(std::forward<F>(f), std::forward<Args>(args)...);
+    task.cancel = []() {
+        // no-op
+    };
+
+    std::unique_lock<std::mutex> lock(mtx);
+    if (stop) {
+        throw std::runtime_error("post on stopped thread_pool");
+    }
+
+    cleanup_finished_threads_unlocked();
+
+    if (queue_capacity > 0 && tasks.size() >= queue_capacity) {
+        switch (on_queue_full) {
+        case reject_policy::block: {
+            if (all_threadnum.load() < max_threadnum) {
+                add_thread_unlocked();
+            }
+
+            condition.wait(lock, [this]() {
+                return stop || queue_capacity == 0 || tasks.size() < queue_capacity;
+            });
+
+            if (stop) {
+                throw std::runtime_error("post on stopped thread_pool");
+            }
+            break;
+        }
+        case reject_policy::throw_exception:
+            rejected_tasks.fetch_add(1, std::memory_order_relaxed);
+            throw task_rejected("task queue full");
+        case reject_policy::discard:
+            rejected_tasks.fetch_add(1, std::memory_order_relaxed);
+            return;
+        case reject_policy::caller_runs: {
+            submitted_tasks.fetch_add(1, std::memory_order_relaxed);
+            lock.unlock();
+            const auto wait_time = std::chrono::nanoseconds(0);
+            execute_task_item(task, wait_time);
+            return;
+        }
+        }
+    }
+
+    enqueue_task_unlocked(std::move(task));
+
+    lock.unlock();
+    condition.notify_one();
 }
 
 template<class F, class... Args>
