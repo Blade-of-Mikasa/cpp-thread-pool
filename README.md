@@ -1,65 +1,120 @@
 # cpp-thread-pool
 
-基于c++实现的线程池
+一个基于 C++17 的线程池（单例）示例：动态扩缩容 + 有界队列背压 + `std::future` 回传 + 可观测性导出（CSV + SVG 图表）。
 
-## plan
+## 特性
 
-- [x] 实现基础结构
-- [ ] 添加单例模式
-- [ ] 优先级机制
-- [ ] Work-Stealing 机制
+- 动态扩缩容：`min_threads ~ max_threads`，空闲超过 `idle_timeout` 后允许缩容
+- 任务提交：`submit()` 返回 `std::future<T>`（返回值/异常都能回传）
+- 有界队列：`queue_capacity`（0 表示无界）+ `try_submit()` / `submit_for(timeout)`
+- 队列满时拒绝策略：阻塞 / 丢弃 / 抛异常 / 调用方执行（caller-runs）
+- 观测：队列长度、吞吐、等待/执行时间直方图、峰值线程数；可导出 CSV 并生成 SVG 图表
 
-## debug
+## 快速开始
 
-关于参数包展开（c++11）和折叠表达式（c++17）
+### 初始化（单例）
 
-`std::forward<Args>(args)...` 和 `(std::forward<Args>(args), ...)` 完全不一样。
-
-例如传入 `args = {1, 'c', "s"}`
-
-参数包展开用于初始化列表，只有**语法环境允许多个元素时才合法**，如：
-
-```c++
-{ args... }      // 初始化列表
-bind(f, args...) // 接受变参模板的函数初始化
-tuple<args...>   // 接受变参模板的容器初始化
-```
-
-而折叠表达式用来把运算符和参数链接在一起;
-
-```c++
-((f(args)), ...)
-```
-
-编译后为
-
-```c++
-(f(arg1)), (f(arg2)), (f(arg3))
-```
-
-例如
-
-```c++
+```cpp
+#include "thread_pool.h"
+#include <chrono>
 #include <iostream>
-#include <string>
 
-template<class ... Args>
-void print(Args&& ... args){
-    ((std::cout << (args + 'c') << std::endl), ...);
-}
+using namespace std::chrono_literals;
 
 int main() {
-    print(1, 3.5, 0x3f3f3f3f, 'c', (std::string)"str");
-    return 0;
+    thread_pool::options opts;
+    opts.min_threads = 2;
+    opts.max_threads = 8;
+    opts.idle_timeout = 800ms;
+    opts.queue_capacity = 256; // 0 = unbounded
+    opts.on_queue_full = thread_pool::reject_policy::block;
+
+    auto &pool = thread_pool::instance(opts);
+
+    auto f = pool.submit([](int x) { return x * 2; }, 21);
+    std::cout << f.get() << '\n';
 }
 ```
 
-输出
+- `thread_pool::instance(options)`：初始化/获取线程池（单例）。
+- `thread_pool::instance(min_threads, max_threads, idle_timeout)`：便捷初始化（不设置 capacity/policy 时可用）。
+- `thread_pool::instance(n)`：固定大小线程池（单例），等价于最小线程数和最大线程数都为 `n`。
+- `thread_pool::instance()`：无参获取已初始化实例（未初始化会抛 `not_initialized`）。
 
-```text
-100
-102.5
-1061109666
-198
-strc
+> 说明：单例第一次调用 `instance(...)` 会完成初始化；如果后续用不同参数再次调用，会抛异常以避免配置不一致。
+
+### 提交接口
+
+- `submit(f, args...) -> std::future<T>`：提交任务并获取返回值/异常。
+- `try_submit(f, args...) -> std::optional<std::future<T>>`：不阻塞；队列满时返回空（caller-runs 例外，会直接执行并返回 future）。
+- `submit_for(timeout, f, args...) -> std::optional<std::future<T>>`：最多等待 `timeout`；超时返回空（caller-runs 例外）。
+
+兼容接口：`enqueue(f, args...)` 仍然保留（内部调用 `submit` 并丢弃 future）。
+
+### 关闭与等待
+
+- `wait_idle()`：等待“当前”队列清空且 `busy==0`。
+- `shutdown(drain)`：停止接收新任务，队列中的任务会继续执行完。
+- `shutdown(cancel)`：停止接收新任务，并取消队列中尚未开始的任务（对应 future.get() 会抛 `task_canceled`）。
+
+## 动态扩缩容策略
+
+1. 初始化时只创建 `min_threads` 个工作线程。
+2. 每次 `submit` 时，把任务放入队列（FIFO）。
+3. 如果队列中的待处理任务已经多于空闲线程，并且还没到 `max_threads`，就继续创建新线程。
+4. 工作线程空闲时使用 `wait_for` 挂起等待。
+5. 如果等待超过 `idle_timeout` 后仍然没有任务，并且当前线程数大于 `min_threads`，这个空闲线程就会主动退出。
+6. 析构时会停止接收新任务，唤醒所有线程，并把队列里剩余任务处理完再退出。
+
+## 观测与导出
+
+### 运行时指标
+
+- `metrics()`：获取统计快照（队列长度、吞吐、均值等待/执行耗时、直方图、峰值线程数等）。
+- `write_stats_csv(path)`：导出一条汇总快照（CSV）。
+- `write_wait_histogram_csv(path)` / `write_exec_histogram_csv(path)`：导出等待/执行时间直方图（CSV）。
+
+### 示例与图表
+
+运行 `examples/metrics_demo.cpp` 会生成：
+
+- `metrics_time_series.csv`
+- `metrics_stats.csv`
+- `metrics_wait_histogram.csv`
+- `metrics_exec_histogram.csv`
+
+然后用脚本生成 SVG（无第三方依赖）：
+
+```bash
+python scripts/plot_metrics_svg.py --out-dir docs
 ```
+
+![metrics time series](docs/metrics_time_series.svg)
+![wait histogram](docs/metrics_wait_histogram.svg)
+![exec histogram](docs/metrics_exec_histogram.svg)
+
+## 构建与测试
+
+```bash
+cmake -S . -B build
+cmake --build build
+ctest --test-dir build --output-on-failure
+```
+
+## 安装与 find_package
+
+```bash
+cmake --install build --prefix install
+```
+
+CMake 消费侧：
+
+```cmake
+find_package(ThreadPool CONFIG REQUIRED)
+target_link_libraries(your_target PRIVATE ThreadPool::thread_pool)
+```
+
+## 示例程序
+
+- `examples/example.cpp`：打印线程扩缩容过程。
+- `examples/metrics_demo.cpp`：输出 metrics CSV + 直方图 CSV（配合脚本生成 SVG）。

@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="360" viewBox="0 0 1000 360">
+<rect width="100%" height="100%" fill="white"/>
+<style>
+  .axis{stroke:#111;stroke-width:1;fill:none}
+  .grid{stroke:#ddd;stroke-width:1;fill:none}
+  .label{font-family:ui-sans-serif,system-ui,Segoe UI,Arial;font-size:12px;fill:#111}
+  .title{font-family:ui-sans-serif,system-ui,Segoe UI,Arial;font-size:16px;font-weight:600;fill:#111}
+</style>
+<text class="title" x="20" y="28">Task wait time histogram</text>
+<line class="grid" x1="70.00" y1="300.00" x2="980.00" y2="300.00"/>
+<text class="label" x="62.00" y="304.00" text-anchor="end">0</text>
+<line class="grid" x1="70.00" y1="197.75" x2="980.00" y2="197.75"/>
+<text class="label" x="62.00" y="201.75" text-anchor="end">200</text>
+<line class="grid" x1="70.00" y1="95.50" x2="980.00" y2="95.50"/>
+<text class="label" x="62.00" y="99.50" text-anchor="end">400</text>
+<line class="grid" x1="70.00" y1="-6.75" x2="980.00" y2="-6.75"/>
+<text class="label" x="62.00" y="-2.75" text-anchor="end">600</text>
+<line class="grid" x1="70.00" y1="-109.00" x2="980.00" y2="-109.00"/>
+<text class="label" x="62.00" y="-105.00" text-anchor="end">800</text>
+<rect class="axis" x="70.00" y="50.00" width="910.00" height="250.00"/>
+<rect x="72.00" y="300.00" width="37.36" height="0.00" fill="#4b5563"/>
+<text class="label" x="90.68" y="338.00" text-anchor="end" transform="rotate(-45 90.68 338.00)">1us</text>
+<rect x="113.36" y="300.00" width="37.36" height="0.00" fill="#4b5563"/>
+<text class="label" x="132.05" y="338.00" text-anchor="end" transform="rotate(-45 132.05 338.00)">2us</text>
+<rect x="154.73" y="300.00" width="37.36" height="0.00" fill="#4b5563"/>
+<text class="label" x="173.41" y="338.00" text-anchor="end" transform="rotate(-45 173.41 338.00)">5us</text>
+<rect x="196.09" y="299.49" width="37.36" height="0.51" fill="#4b5563"/>
+<text class="label" x="214.77" y="338.00" text-anchor="end" transform="rotate(-45 214.77 338.00)">10us</text>
+<rect x="237.45" y="299.49" width="37.36" height="0.51" fill="#4b5563"/>
+<text class="label" x="256.14" y="338.00" text-anchor="end" transform="rotate(-45 256.14 338.00)">20us</text>
+<rect x="278.82" y="300.00" width="37.36" height="0.00" fill="#4b5563"/>
+<text class="label" x="297.50" y="338.00" text-anchor="end" transform="rotate(-45 297.50 338.00)">50us</text>
+<rect x="320.18" y="299.49" width="37.36" height="0.51" fill="#4b5563"/>
+<text class="label" x="338.86" y="338.00" text-anchor="end" transform="rotate(-45 338.86 338.00)">100us</text>
+<rect x="361.55" y="297.44" width="37.36" height="2.56" fill="#4b5563"/>
+<text class="label" x="380.23" y="338.00" text-anchor="end" transform="rotate(-45 380.23 338.00)">200us</text>
+<rect x="402.91" y="300.00" width="37.36" height="0.00" fill="#4b5563"/>
+<text class="label" x="421.59" y="338.00" text-anchor="end" transform="rotate(-45 421.59 338.00)">500us</text>
+<rect x="444.27" y="300.00" width="37.36" height="0.00" fill="#4b5563"/>
+<text class="label" x="462.95" y="338.00" text-anchor="end" transform="rotate(-45 462.95 338.00)">1ms</text>
+<rect x="485.64" y="300.00" width="37.36" height="0.00" fill="#4b5563"/>
+<text class="label" x="504.32" y="338.00" text-anchor="end" transform="rotate(-45 504.32 338.00)">2ms</text>
+<rect x="527.00" y="300.00" width="37.36" height="0.00" fill="#4b5563"/>
+<text class="label" x="545.68" y="338.00" text-anchor="end" transform="rotate(-45 545.68 338.00)">5ms</text>
+<rect x="568.36" y="300.00" width="37.36" height="0.00" fill="#4b5563"/>
+<text class="label" x="587.05" y="338.00" text-anchor="end" transform="rotate(-45 587.05 338.00)">10ms</text>
+<rect x="609.73" y="300.00" width="37.36" height="0.00" fill="#4b5563"/>
+<text class="label" x="628.41" y="338.00" text-anchor="end" transform="rotate(-45 628.41 338.00)">20ms</text>
+<rect x="651.09" y="297.44" width="37.36" height="2.56" fill="#4b5563"/>
+<text class="label" x="669.77" y="338.00" text-anchor="end" transform="rotate(-45 669.77 338.00)">50ms</text>
+<rect x="692.45" y="296.93" width="37.36" height="3.07" fill="#4b5563"/>
+<text class="label" x="711.14" y="338.00" text-anchor="end" transform="rotate(-45 711.14 338.00)">100ms</text>
+<rect x="733.82" y="290.29" width="37.36" height="9.71" fill="#4b5563"/>
+<text class="label" x="752.50" y="338.00" text-anchor="end" transform="rotate(-45 752.50 338.00)">200ms</text>
+<rect x="775.18" y="262.68" width="37.36" height="37.32" fill="#4b5563"/>
+<text class="label" x="793.86" y="338.00" text-anchor="end" transform="rotate(-45 793.86 338.00)">500ms</text>
+<rect x="816.55" y="50.00" width="37.36" height="250.00" fill="#4b5563"/>
+<text class="label" x="835.23" y="338.00" text-anchor="end" transform="rotate(-45 835.23 338.00)">1s</text>
+<rect x="857.91" y="300.00" width="37.36" height="0.00" fill="#4b5563"/>
+<text class="label" x="876.59" y="338.00" text-anchor="end" transform="rotate(-45 876.59 338.00)">2s</text>
+<rect x="899.27" y="300.00" width="37.36" height="0.00" fill="#4b5563"/>
+<text class="label" x="917.95" y="338.00" text-anchor="end" transform="rotate(-45 917.95 338.00)">5s</text>
+<rect x="940.64" y="300.00" width="37.36" height="0.00" fill="#4b5563"/>
+<text class="label" x="959.32" y="338.00" text-anchor="end" transform="rotate(-45 959.32 338.00)">>5s</text>
+</svg>

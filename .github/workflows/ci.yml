@@ -1,0 +1,68 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  linux-clang-sanitize-tidy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake ninja-build clang clang-tidy
+
+      - name: Configure
+        run: |
+          cmake -S . -B build -G Ninja \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DCMAKE_C_COMPILER=clang \
+            -DCMAKE_CXX_COMPILER=clang++ \
+            -DTHREAD_POOL_ENABLE_SANITIZERS=ON \
+            -DTHREAD_POOL_ENABLE_TIDY=ON
+
+      - name: Build
+        run: cmake --build build
+
+      - name: Test
+        run: ctest --test-dir build --output-on-failure
+
+      - name: Install
+        run: cmake --install build --prefix install
+
+      - name: Consume (find_package)
+        run: |
+          cmake -S tests/consume -B build-consume -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_PREFIX_PATH="$PWD/install"
+          cmake --build build-consume
+          ./build-consume/consume
+
+  windows-msvc:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        run: cmake --build build --config Release
+
+      - name: Test
+        run: ctest --test-dir build --output-on-failure -C Release
+
+      - name: Install
+        run: cmake --install build --prefix install --config Release
+
+      - name: Consume (find_package)
+        shell: pwsh
+        run: |
+          cmake -S tests/consume -B build-consume -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="${env:GITHUB_WORKSPACE}/install"
+          cmake --build build-consume --config Release
+          ./build-consume/Release/consume.exe
