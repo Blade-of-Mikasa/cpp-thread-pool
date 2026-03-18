@@ -1,4 +1,6 @@
-build/
+﻿build/
+cmake-build-debug/
+.venv/
 *.o
 *.out
 *.exe

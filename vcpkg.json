@@ -1,7 +1,0 @@
-{
-  "name": "cpp-thread-pool",
-  "version-string": "0.1.0",
-  "description": "A C++17 thread pool example with dynamic scaling, backpressure, futures and metrics.",
-  "dependencies": []
-}
-

@@ -4,6 +4,7 @@
 #include <chrono>
 #include <condition_variable>
 #include <cstddef>
+#include <cstdint>
 #include <functional>
 #include <future>
 #include <memory>
@@ -123,6 +124,18 @@ public:
     // 注意：这不是 shutdown；其他线程仍可继续 submit 新任务（除非已 shutdown）。
     void wait_idle();
 
+    struct diagnostics_snapshot {
+        std::uint64_t threads_created{0};
+        std::uint64_t worker_exit_idle{0};
+        std::uint64_t worker_exit_stop{0};
+        std::uint64_t finished_cleanup_passes{0};
+        std::uint64_t finished_threads_joined{0};
+        std::uint64_t thread_create_time_ns{0};
+        std::uint64_t finished_join_time_ns{0};
+    };
+
+    [[nodiscard]] diagnostics_snapshot diagnostics() const;
+
     // 观测接口：
     // - size()/busy_size() 是原子计数快照（不会加锁）；用于监控/统计，读数可能有轻微瞬态误差。
     // - pending_size() 会加锁读取队列大小。
@@ -164,6 +177,13 @@ private:
     reject_policy on_queue_full;
     std::atomic<std::size_t> busy_threadnum{0};
     std::atomic<std::size_t> all_threadnum{0};
+    std::atomic<std::uint64_t> threads_created_count{0};
+    std::atomic<std::uint64_t> worker_exit_idle_count{0};
+    std::atomic<std::uint64_t> worker_exit_stop_count{0};
+    std::atomic<std::uint64_t> finished_cleanup_pass_count{0};
+    std::atomic<std::uint64_t> finished_threads_joined_count{0};
+    std::atomic<std::uint64_t> thread_create_time_ns_total{0};
+    std::atomic<std::uint64_t> finished_join_time_ns_total{0};
     std::vector<worker_slot> threads;
     std::queue<task_item> tasks;
     mutable std::mutex mtx;

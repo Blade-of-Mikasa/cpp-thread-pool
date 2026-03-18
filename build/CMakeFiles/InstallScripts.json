@@ -1,7 +1,0 @@
-{
-	"InstallScripts" : 
-	[
-		"C:/MyProjections/cpp-thread-pool/build/cmake_install.cmake"
-	],
-	"Parallel" : false
-}

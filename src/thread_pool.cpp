@@ -24,6 +24,13 @@ std::atomic<thread_pool *> &singleton_ptr() {
     return ptr;
 }
 
+void add_duration(std::atomic<std::uint64_t> &target, std::chrono::steady_clock::duration duration) {
+    const auto ns = std::chrono::duration_cast<std::chrono::nanoseconds>(duration).count();
+    if (ns > 0) {
+        target.fetch_add(static_cast<std::uint64_t>(ns), std::memory_order_relaxed);
+    }
+}
+
 }
 
 thread_pool &thread_pool::instance() {
@@ -102,6 +109,7 @@ thread_pool::~thread_pool() {
 }
 
 void thread_pool::add_thread_unlocked() {
+    const auto started_at = std::chrono::steady_clock::now();
     auto finished_signal = std::make_shared<std::promise<void>>();
 
     worker_slot slot;
@@ -111,19 +119,25 @@ void thread_pool::add_thread_unlocked() {
     });
 
     threads.emplace_back(std::move(slot));
-    const auto current_threads = ++all_threadnum;
+    ++all_threadnum;
+    threads_created_count.fetch_add(1, std::memory_order_relaxed);
+    add_duration(thread_create_time_ns_total, std::chrono::steady_clock::now() - started_at);
 }
 
 void thread_pool::cleanup_finished_threads_unlocked() {
     const auto immediately = std::chrono::milliseconds(0);
+    finished_cleanup_pass_count.fetch_add(1, std::memory_order_relaxed);
 
     // 说明：
     // - worker 自己不会从 threads 容器里“删除自己”，而是通过 promise/future 通知已结束。
     // - enqueue 时在持锁情况下把已结束线程 join 掉并移除，保持 threads 容器整洁。
-    auto new_end = std::remove_if(threads.begin(), threads.end(), [immediately](worker_slot &slot) {
+    auto new_end = std::remove_if(threads.begin(), threads.end(), [this, immediately](worker_slot &slot) {
         if (slot.finished.valid() && slot.finished.wait_for(immediately) == std::future_status::ready) {
             if (slot.worker.joinable()) {
+                const auto join_started_at = std::chrono::steady_clock::now();
                 slot.worker.join();
+                finished_threads_joined_count.fetch_add(1, std::memory_order_relaxed);
+                add_duration(finished_join_time_ns_total, std::chrono::steady_clock::now() - join_started_at);
             }
             return true;
         }
@@ -173,6 +187,7 @@ void thread_pool::worker_loop(std::shared_ptr<std::promise<void>> finished_signa
             // stop 策略：不再接收新任务，但会把队列里已有任务处理完。
             if (stop && tasks.empty()) {
                 --all_threadnum;
+                worker_exit_stop_count.fetch_add(1, std::memory_order_relaxed);
                 should_exit = true;
             } else if (!tasks.empty()) {
                 task = std::move(tasks.front());
@@ -184,6 +199,7 @@ void thread_pool::worker_loop(std::shared_ptr<std::promise<void>> finished_signa
             } else if (!has_work && all_threadnum.load() > min_threadnum) {
                 // 空闲超时且当前线程数大于下限：允许该线程退出以缩容。
                 --all_threadnum;
+                worker_exit_idle_count.fetch_add(1, std::memory_order_relaxed);
                 should_exit = true;
             }
         }
@@ -243,6 +259,18 @@ void thread_pool::wait_idle() {
     condition.wait(lock, [this]() {
         return tasks.empty() && busy_threadnum.load() == 0;
     });
+}
+
+thread_pool::diagnostics_snapshot thread_pool::diagnostics() const {
+    diagnostics_snapshot snapshot;
+    snapshot.threads_created = threads_created_count.load(std::memory_order_relaxed);
+    snapshot.worker_exit_idle = worker_exit_idle_count.load(std::memory_order_relaxed);
+    snapshot.worker_exit_stop = worker_exit_stop_count.load(std::memory_order_relaxed);
+    snapshot.finished_cleanup_passes = finished_cleanup_pass_count.load(std::memory_order_relaxed);
+    snapshot.finished_threads_joined = finished_threads_joined_count.load(std::memory_order_relaxed);
+    snapshot.thread_create_time_ns = thread_create_time_ns_total.load(std::memory_order_relaxed);
+    snapshot.finished_join_time_ns = finished_join_time_ns_total.load(std::memory_order_relaxed);
+    return snapshot;
 }
 
 std::size_t thread_pool::size() const {

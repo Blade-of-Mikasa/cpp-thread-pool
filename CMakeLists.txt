@@ -82,6 +82,12 @@ install(FILES
 add_executable(example examples/example.cpp)
 target_link_libraries(example thread_pool)
 
+add_executable(thread_pool_benchmark benchmarks/thread_pool_benchmark.cpp)
+target_link_libraries(thread_pool_benchmark thread_pool)
+if(WIN32)
+    target_link_libraries(thread_pool_benchmark psapi)
+endif()
+
 enable_testing()
 
 add_executable(test_thread_pool tests/test_thread_pool.cpp)

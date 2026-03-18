@@ -1,4 +1,4 @@
-﻿# cpp-thread-pool
+# cpp-thread-pool
 
 一个基于 C++17 的线程池（单例）示例，保留核心能力：动态扩缩容、有界队列背压、`std::future` 回传，以及多种满队列处理策略。
 
@@ -61,6 +61,40 @@ cmake -S . -B build
 cmake --build build
 ctest --test-dir build --output-on-failure
 ```
+
+## 压力测试
+项目现在带一个轻量压测程序，用来对比高并发下动态线程池和静态线程池在“随机并发强度”负载下的表现。
+
+默认比较方式：
+- dynamic：`min_threads -> max_threads`
+- fixed：固定线程数，默认等于 `max_threads`
+- profile：默认 `random`，会在多个 phase 里随机改变活跃 producer 数、单任务耗时和 phase 间隔
+
+构建并运行：
+```bash
+cmake -S . -B build
+cmake --build build --target thread_pool_benchmark
+./build/thread_pool_benchmark --profile random --tasks 300000 --producers 16 --min 2 --max 8 --repeats 3
+```
+
+也可以切回稳定负载：
+```bash
+./build/thread_pool_benchmark --profile steady --tasks 300000 --producers 16 --work spin --work-us 50 --min 2 --max 8 --repeats 3
+```
+
+单独跑某一种模式：
+```bash
+./build/thread_pool_benchmark --mode fixed --profile random --tasks 300000 --producers 16 --fixed-threads 8
+./build/thread_pool_benchmark --mode dynamic --profile random --tasks 300000 --producers 16 --min 2 --max 8
+```
+
+程序会直接在控制台输出：
+- fixed / dynamic 各自的平均总耗时与吞吐量
+- 平均线程数、峰值排队深度
+- user / kernel CPU time
+- 峰值工作集内存
+- 动态线程池运行时创建线程、空闲退出线程、线程创建耗时、线程回收 join 耗时
+- 本次运行里“最大的可测额外开销”是什么
 
 ## 安装与 `find_package`
 ```bash
