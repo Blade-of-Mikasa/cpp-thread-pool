@@ -1,0 +1,3 @@
+C:/MyProjections/cpp-thread-pool/build-check/CMakeFiles/CMakeScratch/TryCompile-jtv9kl/CMakeFiles/cmTC_d2cbe.dir
+C:/MyProjections/cpp-thread-pool/build-check/CMakeFiles/CMakeScratch/TryCompile-jtv9kl/CMakeFiles/edit_cache.dir
+C:/MyProjections/cpp-thread-pool/build-check/CMakeFiles/CMakeScratch/TryCompile-jtv9kl/CMakeFiles/rebuild_cache.dir
