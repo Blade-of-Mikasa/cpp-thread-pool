@@ -82,12 +82,6 @@ install(FILES
 add_executable(example examples/example.cpp)
 target_link_libraries(example thread_pool)
 
-add_executable(metrics_demo examples/metrics_demo.cpp)
-target_link_libraries(metrics_demo thread_pool)
-
-add_executable(stress_bench benchmarks/stress_bench.cpp)
-target_link_libraries(stress_bench thread_pool)
-
 enable_testing()
 
 add_executable(test_thread_pool tests/test_thread_pool.cpp)
@@ -118,10 +112,6 @@ add_test(NAME thread_pool_reject_caller_runs COMMAND test_reject_caller_runs)
 add_executable(test_shutdown_cancel tests/test_shutdown_cancel.cpp)
 target_link_libraries(test_shutdown_cancel thread_pool)
 add_test(NAME thread_pool_shutdown_cancel COMMAND test_shutdown_cancel)
-
-add_executable(test_metrics_snapshot tests/test_metrics_snapshot.cpp)
-target_link_libraries(test_metrics_snapshot thread_pool)
-add_test(NAME thread_pool_metrics_snapshot COMMAND test_metrics_snapshot)
 
 add_executable(test_stress_shutdown_interleaving tests/test_stress_shutdown_interleaving.cpp)
 target_link_libraries(test_stress_shutdown_interleaving thread_pool)

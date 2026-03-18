@@ -1,7 +1,5 @@
 C:/MyProjections/cpp-thread-pool/build/CMakeFiles/thread_pool.dir
 C:/MyProjections/cpp-thread-pool/build/CMakeFiles/example.dir
-C:/MyProjections/cpp-thread-pool/build/CMakeFiles/metrics_demo.dir
-C:/MyProjections/cpp-thread-pool/build/CMakeFiles/stress_bench.dir
 C:/MyProjections/cpp-thread-pool/build/CMakeFiles/test_thread_pool.dir
 C:/MyProjections/cpp-thread-pool/build/CMakeFiles/test_submit_future.dir
 C:/MyProjections/cpp-thread-pool/build/CMakeFiles/test_try_submit_full.dir
@@ -9,7 +7,6 @@ C:/MyProjections/cpp-thread-pool/build/CMakeFiles/test_submit_for_timeout.dir
 C:/MyProjections/cpp-thread-pool/build/CMakeFiles/test_reject_throw.dir
 C:/MyProjections/cpp-thread-pool/build/CMakeFiles/test_reject_caller_runs.dir
 C:/MyProjections/cpp-thread-pool/build/CMakeFiles/test_shutdown_cancel.dir
-C:/MyProjections/cpp-thread-pool/build/CMakeFiles/test_metrics_snapshot.dir
 C:/MyProjections/cpp-thread-pool/build/CMakeFiles/test_stress_shutdown_interleaving.dir
 C:/MyProjections/cpp-thread-pool/build/CMakeFiles/test.dir
 C:/MyProjections/cpp-thread-pool/build/CMakeFiles/edit_cache.dir

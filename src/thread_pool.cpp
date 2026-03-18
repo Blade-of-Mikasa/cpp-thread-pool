@@ -2,8 +2,6 @@
 
 #include <algorithm>
 #include <atomic>
-#include <fstream>
-#include <iomanip>
 #include <utility>
 
 namespace {
@@ -26,25 +24,6 @@ std::atomic<thread_pool *> &singleton_ptr() {
     return ptr;
 }
 
-const char *to_string(thread_pool::reject_policy policy) {
-    switch (policy) {
-    case thread_pool::reject_policy::block:
-        return "block";
-    case thread_pool::reject_policy::discard:
-        return "discard";
-    case thread_pool::reject_policy::throw_exception:
-        return "throw_exception";
-    case thread_pool::reject_policy::caller_runs:
-        return "caller_runs";
-    }
-    return "unknown";
-}
-
-void update_peak(std::atomic<std::size_t> &peak, std::size_t value) {
-    auto current = peak.load(std::memory_order_relaxed);
-    while (current < value && !peak.compare_exchange_weak(current, value, std::memory_order_relaxed)) {
-    }
-}
 }
 
 thread_pool &thread_pool::instance() {
@@ -81,14 +60,12 @@ thread_pool &thread_pool::instance(options opts) {
     const auto expected_idle_timeout = normalize_idle_timeout(opts.idle_timeout);
     const auto expected_capacity = opts.queue_capacity;
     const auto expected_policy = opts.on_queue_full;
-    const auto expected_metrics = opts.enable_metrics;
 
     if (pool.min_threadnum != expected_min ||
         pool.max_threadnum != expected_max ||
         pool.idle_timeout != expected_idle_timeout ||
         pool.queue_capacity != expected_capacity ||
-        pool.on_queue_full != expected_policy ||
-        pool.enable_metrics != expected_metrics) {
+        pool.on_queue_full != expected_policy) {
         throw std::runtime_error("thread_pool singleton already initialized with different configuration");
     }
 
@@ -100,9 +77,7 @@ thread_pool::thread_pool(options opts)
       max_threadnum(normalize_max_thread_count(opts.min_threads, opts.max_threads)),
       idle_timeout(normalize_idle_timeout(opts.idle_timeout)),
       queue_capacity(opts.queue_capacity),
-      on_queue_full(opts.on_queue_full),
-      enable_metrics(opts.enable_metrics),
-      created_at(std::chrono::steady_clock::now()) {
+      on_queue_full(opts.on_queue_full) {
     std::unique_lock<std::mutex> lock(mtx);
     threads.reserve(this->max_threadnum);
     for (std::size_t i = 0; i < this->min_threadnum; ++i) {
@@ -137,7 +112,6 @@ void thread_pool::add_thread_unlocked() {
 
     threads.emplace_back(std::move(slot));
     const auto current_threads = ++all_threadnum;
-    update_peak(peak_threadnum, current_threads);
 }
 
 void thread_pool::cleanup_finished_threads_unlocked() {
@@ -161,8 +135,6 @@ void thread_pool::cleanup_finished_threads_unlocked() {
 
 void thread_pool::enqueue_task_unlocked(task_item task) {
     tasks.emplace(std::move(task));
-    submitted_tasks.fetch_add(1, std::memory_order_relaxed);
-    update_peak(peak_pending_tasks, tasks.size());
 
     // 线程扩容策略：如果“待处理任务数 > 空闲线程数”，则尝试补线程到 max。
     const auto current_threads = all_threadnum.load();
@@ -188,7 +160,6 @@ void thread_pool::worker_loop(std::shared_ptr<std::promise<void>> finished_signa
 
     while (true) {
         task_item task;
-        std::chrono::steady_clock::time_point started_at{};
         bool should_exit = false;
         bool has_task = false;
 
@@ -207,9 +178,6 @@ void thread_pool::worker_loop(std::shared_ptr<std::promise<void>> finished_signa
                 task = std::move(tasks.front());
                 tasks.pop();
                 ++busy_threadnum;
-                if (enable_metrics) {
-                    started_at = std::chrono::steady_clock::now();
-                }
                 has_task = true;
                 // 释放一个队列容量，唤醒可能在等待 capacity 的提交者。
                 condition.notify_all();
@@ -229,48 +197,25 @@ void thread_pool::worker_loop(std::shared_ptr<std::promise<void>> finished_signa
         if (!has_task) {
             continue;
         }
-
-        const auto wait_time = enable_metrics
-                                   ? std::chrono::duration_cast<std::chrono::nanoseconds>(started_at - task.enqueued_at)
-                                   : std::chrono::nanoseconds(0);
-        execute_task_item(task, wait_time);
+        execute_task_item(task);
 
         --busy_threadnum;
         condition.notify_all();
     }
 }
 
-void thread_pool::execute_task_item(task_item &task, std::chrono::nanoseconds wait_time) {
-    started_tasks.fetch_add(1, std::memory_order_relaxed);
-    if (enable_metrics) {
-        wait_time_histogram.observe(wait_time);
-    }
-
-    std::chrono::steady_clock::time_point exec_started_at{};
-    if (enable_metrics) {
-        exec_started_at = std::chrono::steady_clock::now();
-    }
-
+void thread_pool::execute_task_item(task_item &task) {
     try {
         task.run();
     } catch (...) {
-        // task.run 理论上不应抛出（已在 run lambda 内部 catch 并 set_exception）。
-        // 这里仍做兜底，避免异常逃逸导致 worker 线程终止。
     }
-
-    if (enable_metrics) {
-        const auto exec_time =
-            std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now() - exec_started_at);
-        exec_time_histogram.observe(exec_time);
-    }
-    completed_tasks.fetch_add(1, std::memory_order_relaxed);
 }
+
 
 void thread_pool::cancel_pending_tasks_unlocked() {
     while (!tasks.empty()) {
         auto task = std::move(tasks.front());
         tasks.pop();
-        canceled_tasks.fetch_add(1, std::memory_order_relaxed);
         try {
             task.cancel();
         } catch (...) {
@@ -298,110 +243,6 @@ void thread_pool::wait_idle() {
     condition.wait(lock, [this]() {
         return tasks.empty() && busy_threadnum.load() == 0;
     });
-}
-
-void thread_pool::histogram::observe(std::chrono::nanoseconds value) {
-    auto ns = value.count();
-    if (ns < 0) {
-        ns = 0;
-    }
-
-    std::size_t index = bucket_count - 1;
-    for (std::size_t i = 0; i < upper_bounds.size(); ++i) {
-        if (value <= upper_bounds[i]) {
-            index = i;
-            break;
-        }
-    }
-
-    buckets[index].fetch_add(1, std::memory_order_relaxed);
-    sample_count.fetch_add(1, std::memory_order_relaxed);
-    total_ns.fetch_add(static_cast<std::uint64_t>(ns), std::memory_order_relaxed);
-}
-
-thread_pool::histogram_snapshot thread_pool::histogram::snapshot() const {
-    histogram_snapshot snap;
-    for (std::size_t i = 0; i < bucket_count; ++i) {
-        snap.buckets[i] = buckets[i].load(std::memory_order_relaxed);
-    }
-    snap.sample_count = sample_count.load(std::memory_order_relaxed);
-    snap.total_ns = total_ns.load(std::memory_order_relaxed);
-    return snap;
-}
-
-thread_pool::metrics_snapshot thread_pool::metrics() const {
-    metrics_snapshot snap;
-    snap.uptime = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now() - created_at);
-
-    snap.threads = all_threadnum.load(std::memory_order_relaxed);
-    snap.busy_threads = busy_threadnum.load(std::memory_order_relaxed);
-    snap.submitted_total = submitted_tasks.load(std::memory_order_relaxed);
-    snap.started_total = started_tasks.load(std::memory_order_relaxed);
-    snap.completed_total = completed_tasks.load(std::memory_order_relaxed);
-    snap.canceled_total = canceled_tasks.load(std::memory_order_relaxed);
-    snap.rejected_total = rejected_tasks.load(std::memory_order_relaxed);
-    snap.peak_threads = peak_threadnum.load(std::memory_order_relaxed);
-    snap.peak_pending_tasks = peak_pending_tasks.load(std::memory_order_relaxed);
-
-    {
-        std::lock_guard<std::mutex> lock(mtx);
-        snap.pending_tasks = tasks.size();
-    }
-
-    const auto uptime_sec = std::chrono::duration<double>(snap.uptime).count();
-    if (uptime_sec > 0.0) {
-        snap.throughput_per_sec = static_cast<double>(snap.completed_total) / uptime_sec;
-    }
-
-    snap.wait_histogram = wait_time_histogram.snapshot();
-    snap.exec_histogram = exec_time_histogram.snapshot();
-
-    if (snap.wait_histogram.sample_count > 0) {
-        snap.avg_wait_us =
-            static_cast<double>(snap.wait_histogram.total_ns) / static_cast<double>(snap.wait_histogram.sample_count) /
-            1000.0;
-    }
-    if (snap.exec_histogram.sample_count > 0) {
-        snap.avg_exec_us =
-            static_cast<double>(snap.exec_histogram.total_ns) / static_cast<double>(snap.exec_histogram.sample_count) /
-            1000.0;
-    }
-
-    return snap;
-}
-
-void thread_pool::write_stats_csv(const std::string &path) const {
-    std::ofstream out(path);
-    const auto snap = metrics();
-    out << "uptime_ms,threads,busy_threads,pending_tasks,submitted_total,started_total,completed_total,canceled_total,"
-           "rejected_total,peak_threads,peak_pending_tasks,throughput_per_sec,avg_wait_us,avg_exec_us,capacity,policy\n";
-    out << std::fixed << std::setprecision(3);
-    out << (std::chrono::duration<double, std::milli>(snap.uptime).count()) << ',' << snap.threads << ','
-        << snap.busy_threads << ',' << snap.pending_tasks << ',' << snap.submitted_total << ',' << snap.started_total
-        << ',' << snap.completed_total << ',' << snap.canceled_total << ',' << snap.rejected_total << ','
-        << snap.peak_threads << ',' << snap.peak_pending_tasks << ',' << snap.throughput_per_sec << ','
-        << snap.avg_wait_us << ',' << snap.avg_exec_us << ',' << queue_capacity << ',' << to_string(on_queue_full)
-        << '\n';
-}
-
-void thread_pool::write_wait_histogram_csv(const std::string &path) const {
-    std::ofstream out(path);
-    const auto snap = wait_time_histogram.snapshot();
-    out << "upper_bound_ns,count\n";
-    for (std::size_t i = 0; i < histogram::upper_bounds.size(); ++i) {
-        out << histogram::upper_bounds[i].count() << ',' << snap.buckets[i] << '\n';
-    }
-    out << "inf," << snap.buckets[histogram::bucket_count - 1] << '\n';
-}
-
-void thread_pool::write_exec_histogram_csv(const std::string &path) const {
-    std::ofstream out(path);
-    const auto snap = exec_time_histogram.snapshot();
-    out << "upper_bound_ns,count\n";
-    for (std::size_t i = 0; i < histogram::upper_bounds.size(); ++i) {
-        out << histogram::upper_bounds[i].count() << ',' << snap.buckets[i] << '\n';
-    }
-    out << "inf," << snap.buckets[histogram::bucket_count - 1] << '\n';
 }
 
 std::size_t thread_pool::size() const {

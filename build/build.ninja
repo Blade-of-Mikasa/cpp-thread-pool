@@ -117,84 +117,6 @@ build example.exe: CXX_EXECUTABLE_LINKER__example_Debug CMakeFiles/example.dir/e
   TARGET_PDB = example.pdb
 
 # =============================================================================
-# Object build statements for EXECUTABLE target metrics_demo
-
-
-#############################################
-# Order-only phony target for metrics_demo
-
-build cmake_object_order_depends_target_metrics_demo: phony || cmake_object_order_depends_target_thread_pool
-
-build CMakeFiles/metrics_demo.dir/examples/metrics_demo.cpp.obj: CXX_COMPILER__metrics_demo_unscanned_Debug C$:/MyProjections/cpp-thread-pool/examples/metrics_demo.cpp || cmake_object_order_depends_target_metrics_demo
-  CONFIG = Debug
-  DEP_FILE = CMakeFiles\metrics_demo.dir\examples\metrics_demo.cpp.obj.d
-  FLAGS = -g -std=gnu++17
-  INCLUDES = -IC:/MyProjections/cpp-thread-pool/include
-  OBJECT_DIR = CMakeFiles\metrics_demo.dir
-  OBJECT_FILE_DIR = CMakeFiles\metrics_demo.dir\examples
-  TARGET_COMPILE_PDB = CMakeFiles\metrics_demo.dir\
-  TARGET_PDB = metrics_demo.pdb
-
-
-# =============================================================================
-# Link build statements for EXECUTABLE target metrics_demo
-
-
-#############################################
-# Link the executable metrics_demo.exe
-
-build metrics_demo.exe: CXX_EXECUTABLE_LINKER__metrics_demo_Debug CMakeFiles/metrics_demo.dir/examples/metrics_demo.cpp.obj | libthread_pool.a || libthread_pool.a
-  CONFIG = Debug
-  FLAGS = -g
-  LINK_LIBRARIES = libthread_pool.a  -lkernel32 -luser32 -lgdi32 -lwinspool -lshell32 -lole32 -loleaut32 -luuid -lcomdlg32 -ladvapi32
-  OBJECT_DIR = CMakeFiles\metrics_demo.dir
-  POST_BUILD = cd .
-  PRE_LINK = cd .
-  TARGET_COMPILE_PDB = CMakeFiles\metrics_demo.dir\
-  TARGET_FILE = metrics_demo.exe
-  TARGET_IMPLIB = libmetrics_demo.dll.a
-  TARGET_PDB = metrics_demo.pdb
-
-# =============================================================================
-# Object build statements for EXECUTABLE target stress_bench
-
-
-#############################################
-# Order-only phony target for stress_bench
-
-build cmake_object_order_depends_target_stress_bench: phony || cmake_object_order_depends_target_thread_pool
-
-build CMakeFiles/stress_bench.dir/benchmarks/stress_bench.cpp.obj: CXX_COMPILER__stress_bench_unscanned_Debug C$:/MyProjections/cpp-thread-pool/benchmarks/stress_bench.cpp || cmake_object_order_depends_target_stress_bench
-  CONFIG = Debug
-  DEP_FILE = CMakeFiles\stress_bench.dir\benchmarks\stress_bench.cpp.obj.d
-  FLAGS = -g -std=gnu++17
-  INCLUDES = -IC:/MyProjections/cpp-thread-pool/include
-  OBJECT_DIR = CMakeFiles\stress_bench.dir
-  OBJECT_FILE_DIR = CMakeFiles\stress_bench.dir\benchmarks
-  TARGET_COMPILE_PDB = CMakeFiles\stress_bench.dir\
-  TARGET_PDB = stress_bench.pdb
-
-
-# =============================================================================
-# Link build statements for EXECUTABLE target stress_bench
-
-
-#############################################
-# Link the executable stress_bench.exe
-
-build stress_bench.exe: CXX_EXECUTABLE_LINKER__stress_bench_Debug CMakeFiles/stress_bench.dir/benchmarks/stress_bench.cpp.obj | libthread_pool.a || libthread_pool.a
-  CONFIG = Debug
-  FLAGS = -g
-  LINK_LIBRARIES = libthread_pool.a  -lkernel32 -luser32 -lgdi32 -lwinspool -lshell32 -lole32 -loleaut32 -luuid -lcomdlg32 -ladvapi32
-  OBJECT_DIR = CMakeFiles\stress_bench.dir
-  POST_BUILD = cd .
-  PRE_LINK = cd .
-  TARGET_COMPILE_PDB = CMakeFiles\stress_bench.dir\
-  TARGET_FILE = stress_bench.exe
-  TARGET_IMPLIB = libstress_bench.dll.a
-  TARGET_PDB = stress_bench.pdb
-
-# =============================================================================
 # Object build statements for EXECUTABLE target test_thread_pool
 
 
@@ -468,45 +390,6 @@ build test_shutdown_cancel.exe: CXX_EXECUTABLE_LINKER__test_shutdown_cancel_Debu
   TARGET_PDB = test_shutdown_cancel.pdb
 
 # =============================================================================
-# Object build statements for EXECUTABLE target test_metrics_snapshot
-
-
-#############################################
-# Order-only phony target for test_metrics_snapshot
-
-build cmake_object_order_depends_target_test_metrics_snapshot: phony || cmake_object_order_depends_target_thread_pool
-
-build CMakeFiles/test_metrics_snapshot.dir/tests/test_metrics_snapshot.cpp.obj: CXX_COMPILER__test_metrics_snapshot_unscanned_Debug C$:/MyProjections/cpp-thread-pool/tests/test_metrics_snapshot.cpp || cmake_object_order_depends_target_test_metrics_snapshot
-  CONFIG = Debug
-  DEP_FILE = CMakeFiles\test_metrics_snapshot.dir\tests\test_metrics_snapshot.cpp.obj.d
-  FLAGS = -g -std=gnu++17
-  INCLUDES = -IC:/MyProjections/cpp-thread-pool/include
-  OBJECT_DIR = CMakeFiles\test_metrics_snapshot.dir
-  OBJECT_FILE_DIR = CMakeFiles\test_metrics_snapshot.dir\tests
-  TARGET_COMPILE_PDB = CMakeFiles\test_metrics_snapshot.dir\
-  TARGET_PDB = test_metrics_snapshot.pdb
-
-
-# =============================================================================
-# Link build statements for EXECUTABLE target test_metrics_snapshot
-
-
-#############################################
-# Link the executable test_metrics_snapshot.exe
-
-build test_metrics_snapshot.exe: CXX_EXECUTABLE_LINKER__test_metrics_snapshot_Debug CMakeFiles/test_metrics_snapshot.dir/tests/test_metrics_snapshot.cpp.obj | libthread_pool.a || libthread_pool.a
-  CONFIG = Debug
-  FLAGS = -g
-  LINK_LIBRARIES = libthread_pool.a  -lkernel32 -luser32 -lgdi32 -lwinspool -lshell32 -lole32 -loleaut32 -luuid -lcomdlg32 -ladvapi32
-  OBJECT_DIR = CMakeFiles\test_metrics_snapshot.dir
-  POST_BUILD = cd .
-  PRE_LINK = cd .
-  TARGET_COMPILE_PDB = CMakeFiles\test_metrics_snapshot.dir\
-  TARGET_FILE = test_metrics_snapshot.exe
-  TARGET_IMPLIB = libtest_metrics_snapshot.dll.a
-  TARGET_PDB = test_metrics_snapshot.pdb
-
-# =============================================================================
 # Object build statements for EXECUTABLE target test_stress_shutdown_interleaving
 
 
@@ -627,12 +510,6 @@ build install/strip: phony CMakeFiles/install/strip.util
 
 build example: phony example.exe
 
-build metrics_demo: phony metrics_demo.exe
-
-build stress_bench: phony stress_bench.exe
-
-build test_metrics_snapshot: phony test_metrics_snapshot.exe
-
 build test_reject_caller_runs: phony test_reject_caller_runs.exe
 
 build test_reject_throw: phony test_reject_throw.exe
@@ -659,7 +536,7 @@ build thread_pool: phony libthread_pool.a
 #############################################
 # Folder: C:/MyProjections/cpp-thread-pool/build
 
-build all: phony libthread_pool.a example.exe metrics_demo.exe stress_bench.exe test_thread_pool.exe test_submit_future.exe test_try_submit_full.exe test_submit_for_timeout.exe test_reject_throw.exe test_reject_caller_runs.exe test_shutdown_cancel.exe test_metrics_snapshot.exe test_stress_shutdown_interleaving.exe
+build all: phony libthread_pool.a example.exe test_thread_pool.exe test_submit_future.exe test_try_submit_full.exe test_submit_for_timeout.exe test_reject_throw.exe test_reject_caller_runs.exe test_shutdown_cancel.exe test_stress_shutdown_interleaving.exe
 
 # =============================================================================
 # Built-in targets
